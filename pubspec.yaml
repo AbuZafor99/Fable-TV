@@ -1,0 +1,71 @@
+name: streamworld
+description: "StreamWorld - free live TV channels from around the world."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core / Architecture
+  get: ^4.6.6
+  dartz: ^0.10.1
+  equatable: ^2.0.5
+
+  # Networking
+  dio: ^5.4.0
+  connectivity_plus: ^6.0.3
+  internet_connection_checker: ^1.0.0+1
+
+  # Storage
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.3
+
+  # Video / Streaming
+  # better_player 0.0.84 no longer compiles on current Flutter (removed
+  # hashValues API); better_player_plus is the maintained fork with the
+  # same BetterPlayer* class names.
+  better_player_plus: ^1.0.8
+  video_player: ^2.8.3
+  wakelock_plus: ^1.2.1
+
+  # Map
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+
+  # Location / Geocoding
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+
+  # UI / UX
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_svg: ^2.0.10+1
+  fluttertoast: ^8.2.4
+  percent_indicator: ^4.2.3
+
+  # Utilities
+  flutter_dotenv: ^5.1.0
+  intl: ^0.20.2
+  permission_handler: ^11.3.1
+  image_picker: ^1.0.7
+  screen_brightness: ^0.2.2+1
+  volume_controller: ^2.0.7
+  flutter_background_service: ^5.0.5
+  path_provider: ^2.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
