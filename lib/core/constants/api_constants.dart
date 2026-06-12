@@ -82,4 +82,8 @@ class _BdIptvEndpoints {
   // https://github.com/abusaeeidx/Mrgify-BDIX-IPTV
   String get mrgifyBdix =>
       '$_base/abusaeeidx/Mrgify-BDIX-IPTV/main/playlist.m3u';
+
+  // Bundled local M3U asset with extra Bangla/Hindi channels (Zee Bangla,
+  // Star Jalsha, Sony Max, Gazi TV, BTV, etc.) merged into the BD group.
+  String get bundledExtra => 'assets/data/bangla_extra.m3u';
 }

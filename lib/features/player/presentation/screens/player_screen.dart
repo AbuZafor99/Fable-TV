@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../Theme/constants/app_colors.dart';
+import '../../../../common/widgets/category_chip.dart';
 import '../../../../common/widgets/channel_card.dart';
 import '../../../../common/widgets/channel_logo.dart';
+import '../../../../common/widgets/channel_row.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../home/data/models/channel_model.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 import '../controllers/player_controller.dart';
 import '../widgets/server_selector_sheet.dart';
+import '../widgets/stream_loading_indicator.dart';
 
 class PlayerScreen extends StatefulWidget {
   final ChannelModel channel;
@@ -77,6 +80,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     children: [
                       _ChannelHeader(channel: controller.channel.value),
                       _ActionRow(controller: controller),
+                      _RelatedChannels(controller: controller),
                     ],
                   ),
                 ),
@@ -135,16 +139,17 @@ class _VideoSurface extends StatelessWidget {
       }
 
       final player = controller.betterPlayerController;
+      // The "switching server" overlay (in PlayerControls) already shows its
+      // own indicator, so don't stack a second one on top of it.
+      final showLoading = !controller.isSwitchingServer.value &&
+          (player == null || controller.isLoading.value || controller.isBuffering.value);
       return Container(
         color: Colors.black,
         child: Stack(
           fit: StackFit.expand,
           children: [
             if (player != null) BetterPlayer(controller: player),
-            if (controller.isBuffering.value)
-              const Center(
-                child: CircularProgressIndicator(color: TColors.primary),
-              ),
+            if (showLoading) const StreamLoadingIndicator(),
           ],
         ),
       );
@@ -351,5 +356,91 @@ class _ActionRow extends StatelessWidget {
         );
       }),
     );
+  }
+}
+
+class _RelatedChannels extends StatefulWidget {
+  final PlayerController controller;
+
+  const _RelatedChannels({required this.controller});
+
+  @override
+  State<_RelatedChannels> createState() => _RelatedChannelsState();
+}
+
+class _RelatedChannelsState extends State<_RelatedChannels> {
+  int _tabIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final homeController = Get.find<HomeController>();
+    return Obx(() {
+      final ch = widget.controller.channel.value;
+      if (ch == null) return const SizedBox.shrink();
+
+      final countryName = ch.countryName.isNotEmpty ? ch.countryName : ch.country;
+      final categories = ch.categories
+          .where((c) => c.trim().isNotEmpty && c.toLowerCase() != 'general')
+          .map((c) => c[0].toUpperCase() + c.substring(1))
+          .toSet()
+          .toList();
+      final tabs = ['More from $countryName', ...categories];
+      final tabIndex = _tabIndex < tabs.length ? _tabIndex : 0;
+
+      final countryChannels = homeController.allChannels
+          .where((c) => c.country == ch.country && c.id != ch.id)
+          .toList();
+      if (countryChannels.isEmpty) return const SizedBox.shrink();
+
+      final list = tabIndex == 0
+          ? countryChannels
+          : countryChannels
+              .where((c) => c.categories
+                  .map((e) => e.toLowerCase())
+                  .contains(categories[tabIndex - 1].toLowerCase()))
+              .toList();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                itemCount: tabs.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => CategoryChip(
+                  label: tabs[i],
+                  isActive: tabIndex == i,
+                  onTap: () => setState(() => _tabIndex = i),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (list.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Text(
+                  'No other channels found',
+                  style: TextStyle(color: TColors.textSecondary, fontSize: 13),
+                ),
+              )
+            else
+              ...list.take(30).map(
+                    (c) => ChannelRowTile(
+                      channel: c,
+                      onTap: () {
+                        homeController.addToRecent(c);
+                        widget.controller.init(c);
+                      },
+                    ),
+                  ),
+          ],
+        ),
+      );
+    });
   }
 }

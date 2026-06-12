@@ -66,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       _SettingsRow(
                         icon: Icons.info_outline_rounded,
-                        title: 'About StreamWorld',
+                        title: 'About Fable TV',
                         subtitle: 'v0.1.0 — free worldwide live TV',
                       ),
                     ],

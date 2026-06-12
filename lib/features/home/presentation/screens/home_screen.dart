@@ -5,12 +5,15 @@ import '../../../../Theme/app_gradient.dart';
 import '../../../../Theme/constants/app_colors.dart';
 import '../../../../common/widgets/category_chip.dart';
 import '../../../../common/widgets/section_header.dart';
+import '../../../../common/widgets/shimmer_loading.dart';
 import '../../../../widgets/skeleton_loader.dart';
 import '../../../navigation/presentation/controllers/bottom_nav_controller.dart';
 import '../../../player/presentation/screens/player_screen.dart';
 import '../../data/models/channel_model.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/category_channels_section.dart';
+import '../widgets/featured_hero_carousel.dart';
+import '../widgets/featured_section.dart';
 import '../widgets/recent_channels_row.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -82,6 +85,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (controller.isLoadingChannels.value &&
+                            controller.allChannels.isEmpty) ...[
+                          const SizedBox(height: 6),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: ShimmerLoading(height: 226, borderRadius: 22),
+                          ),
+                          const SizedBox(height: 22),
+                        ] else if (controller.featuredChannels.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          FeaturedHeroCarousel(
+                            channels: controller.featuredChannels,
+                            onOpen: _openChannel,
+                          ),
+                          const SizedBox(height: 22),
+                        ],
                         if (controller.recentChannels.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           const SectionHeader(
@@ -94,6 +113,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             onOpen: _openChannel,
                           ),
                         ],
+                        const SizedBox(height: 22),
+                        const SectionHeader(
+                          title: 'Featured',
+                          subtitle: 'World Cup specials',
+                        ),
+                        const SizedBox(height: 13),
+                        FeaturedSection(
+                          fifaChannels: controller.fifaWorldCupChannels,
+                          cricketChannels: controller.cricketChannels,
+                          fixturesChannels: controller.worldCupFixturesChannels,
+                          onOpen: _openChannel,
+                        ),
                         const SizedBox(height: 22),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -178,9 +209,9 @@ class _TopBar extends StatelessWidget {
                           color: TColors.textPrimary,
                         ),
                     children: const [
-                      TextSpan(text: 'Stream'),
+                      TextSpan(text: 'Fable'),
                       TextSpan(
-                        text: 'World',
+                        text: 'TV',
                         style: TextStyle(color: TColors.primary),
                       ),
                     ],

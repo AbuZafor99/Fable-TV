@@ -196,6 +196,14 @@ class ChannelCacheService extends GetxService {
     return DateTime.now().difference(updatedAt) > CacheConstants.cacheTtl;
   }
 
+  /// The [CacheConstants.dataVersion] that the currently cached country and
+  /// channel data was produced under (0 if never set).
+  int get cachedDataVersion =>
+      int.tryParse(_channelsBox.get(CacheConstants.dataVersionKey) ?? '') ?? 0;
+
+  Future<void> markDataVersionCurrent() =>
+      _channelsBox.put(CacheConstants.dataVersionKey, '${CacheConstants.dataVersion}');
+
   Future<void> clearAll() async {
     _streamIndexMemo = null;
     await _channelsBox.clear();

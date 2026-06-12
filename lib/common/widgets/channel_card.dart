@@ -1,11 +1,14 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../Theme/app_gradient.dart';
 import '../../Theme/constants/app_colors.dart';
 import '../../features/home/data/models/channel_model.dart';
+import '../../widgets/platform_image.dart';
 import 'channel_logo.dart';
 
-/// Poster card from the design (124×150): hue-tinted backdrop, bottom scrim,
+/// Poster card from the design (124×150): logo-art backdrop, bottom scrim,
 /// LIVE dot, logo, name, country code badge + resolution.
 class ChannelCard extends StatelessWidget {
   final ChannelModel channel;
@@ -23,19 +26,18 @@ class ChannelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hue = hueForId(channel.id);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          gradient: AppGradient.channelTint(hue),
           borderRadius: BorderRadius.circular(14),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            Positioned.fill(child: ChannelBackdrop(channel: channel)),
             const Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(gradient: AppGradient.cardScrim),
@@ -91,6 +93,37 @@ class ChannelCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Logo-derived backdrop for channel cards: a softly blurred, tinted version
+/// of the channel's own logo so each tile reads as "this channel" instead of
+/// a flat random-looking color, falling back to the hue tint alone when the
+/// channel has no logo.
+class ChannelBackdrop extends StatelessWidget {
+  final ChannelModel channel;
+
+  const ChannelBackdrop({super.key, required this.channel});
+
+  @override
+  Widget build(BuildContext context) {
+    final hue = hueForId(channel.id);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(gradient: AppGradient.channelTint(hue)),
+        ),
+        if (channel.logoUrl.isNotEmpty)
+          Opacity(
+            opacity: 0.55,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: PlatformImage(url: channel.logoUrl, fit: BoxFit.cover),
+            ),
+          ),
+      ],
     );
   }
 }

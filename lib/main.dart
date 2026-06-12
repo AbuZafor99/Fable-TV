@@ -16,7 +16,7 @@ class StreamWorldApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'StreamWorld',
+      title: 'Fable TV',
       theme: AppTheme.dark,
       debugShowCheckedModeBanner: false,
       home: const MainNavigationScreen(),

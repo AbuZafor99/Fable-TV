@@ -87,8 +87,8 @@ class ServerSelectorSheet extends StatelessWidget {
                                 color: TColors.bgElevated,
                                 borderRadius: BorderRadius.circular(13),
                               ),
-                              child: const Icon(Icons.network_check_rounded,
-                                  size: 20, color: TColors.online),
+                              child: Icon(Icons.signal_cellular_alt_rounded,
+                                  size: 20, color: _signalColor(stream.quality)),
                             ),
                             const SizedBox(width: 13),
                             Expanded(
@@ -161,4 +161,21 @@ class ServerSelectorSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Maps a stream's quality tier to a signal-strength color, mirroring the
+/// design's load-colored signal icon (green = best, amber = mid, grey = SD).
+Color _signalColor(String? quality) {
+  final q = (quality ?? '').toLowerCase();
+  if (q.contains('4k') ||
+      q.contains('uhd') ||
+      q.contains('2160') ||
+      q.contains('1080') ||
+      q.contains('fhd')) {
+    return TColors.online;
+  }
+  if (q.contains('720') || q.contains('hd')) {
+    return TColors.warning;
+  }
+  return TColors.textDisabled;
 }

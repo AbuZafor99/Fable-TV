@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../Theme/app_gradient.dart';
 import '../../../../Theme/constants/app_colors.dart';
 import '../../../../common/widgets/channel_card.dart';
 import '../../../../common/widgets/channel_logo.dart';
 import '../../data/models/channel_model.dart';
 
-/// "Continue watching" carousel: 168×100 hue-tinted cards with LIVE badge,
+/// "Continue watching" carousel: 168×100 logo-backdrop cards with LIVE badge,
 /// logo and an accent progress strip, per the design.
 class RecentChannelsRow extends StatelessWidget {
   final List<ChannelModel> channels;
@@ -45,7 +44,6 @@ class _RecentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hue = hueForId(channel.id);
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -57,12 +55,12 @@ class _RecentCard extends StatelessWidget {
               width: 168,
               height: 100,
               decoration: BoxDecoration(
-                gradient: AppGradient.channelTint(hue),
                 borderRadius: BorderRadius.circular(14),
               ),
               clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
+                  Positioned.fill(child: ChannelBackdrop(channel: channel)),
                   const Positioned(top: 8, left: 8, child: LiveBadge(small: true)),
                   if (channel.quality != null)
                     Positioned(

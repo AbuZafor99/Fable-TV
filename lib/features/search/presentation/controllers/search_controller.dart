@@ -21,7 +21,9 @@ class SearchController extends GetxController {
   final RxList<String> activeFilterCategories = <String>[].obs;
   final RxString activeFilterCountry = ''.obs;
   final RxBool isSearching = false.obs;
-  final RxBool showMapResults = false.obs;
+
+  /// Discover screen's Category/Country segmented toggle.
+  final RxBool isCategoryMode = false.obs;
 
   List<CountryModel> get countries => _homeController.countries;
   Map<String, int> get channelCountByCountry =>
@@ -84,7 +86,6 @@ class SearchController extends GetxController {
     selectedCountryCode.value = code;
     selectedCountryName.value = name;
     mapResults.assignAll(await _searchRepository.channelsByCountry(code));
-    showMapResults.value = true;
   }
 
   void applyFilters(List<String> categories, String country) {
@@ -99,11 +100,27 @@ class SearchController extends GetxController {
     _runSearch();
   }
 
-  void clearMapSelection() {
-    showMapResults.value = false;
-    selectedCountryCode.value = '';
-    selectedCountryName.value = '';
-    mapResults.clear();
+  /// Discover screen's inline category chip row. Selecting "All" (empty id)
+  /// clears the category filter; selecting an active category again toggles
+  /// it off.
+  void selectCategory(String categoryId) {
+    if (categoryId.isEmpty || activeFilterCategories.contains(categoryId)) {
+      applyFilters(const [], activeFilterCountry.value);
+    } else {
+      applyFilters([categoryId], activeFilterCountry.value);
+    }
+  }
+
+  void setCategoryMode(bool categoryMode) {
+    if (isCategoryMode.value == categoryMode) return;
+    isCategoryMode.value = categoryMode;
+    if (!categoryMode) {
+      // Leaving category mode: drop any single-category filter so the map
+      // view isn't hidden behind a stale results list.
+      if (activeFilterCategories.isNotEmpty) {
+        applyFilters(const [], activeFilterCountry.value);
+      }
+    }
   }
 
   @override

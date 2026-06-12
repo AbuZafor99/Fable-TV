@@ -2,12 +2,13 @@ import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
 import '../../../../Theme/constants/app_colors.dart';
-import '../../../../common/widgets/channel_card.dart';
-import '../../../../common/widgets/section_header.dart';
+import '../../../../common/widgets/category_chip.dart';
 import '../../../home/data/models/channel_model.dart';
+import '../../../home/data/models/country_model.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 import '../../../player/presentation/screens/player_screen.dart';
 import '../controllers/search_controller.dart';
+import '../widgets/country_channels_sheet.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/world_map_widget.dart';
@@ -44,6 +45,23 @@ class _SearchScreenState extends State<SearchScreen>
   /// Pre-applies a category filter; used by Home's "See all".
   void applyCategory(String categoryId) {
     controller.applyFilters([categoryId], '');
+  }
+
+  Future<void> _openCountryByPin(CountryModel country) async {
+    await controller.onCountryPinTap(country);
+    _showCountrySheet(country.flag);
+  }
+
+  Future<void> _openCountryByMapTap(double lat, double lng) async {
+    await controller.onMapTap(lat, lng);
+    final code = controller.selectedCountryCode.value;
+    if (code.isEmpty) return;
+    final flag = homeController.countryByCode[code]?.flag ?? '🌍';
+    _showCountrySheet(flag);
+  }
+
+  void _showCountrySheet(String flag) {
+    CountryChannelsSheet.show(flag: flag, onOpen: _openChannel);
   }
 
   @override
@@ -104,35 +122,76 @@ class _SearchScreenState extends State<SearchScreen>
               ),
             ),
             const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Obx(() => _SegmentedToggle(
+                    isCategoryMode: controller.isCategoryMode.value,
+                    onChanged: controller.setCategoryMode,
+                  )),
+            ),
+            Obx(() {
+              if (!controller.isCategoryMode.value) {
+                return const SizedBox(height: 12);
+              }
+              return Column(
+                children: [
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 38,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        Obx(() => CategoryChip(
+                              label: 'All',
+                              isActive: controller.activeFilterCategories.isEmpty,
+                              onTap: () => controller.selectCategory(''),
+                            )),
+                        const SizedBox(width: 8),
+                        ...homeController.categories.map((c) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Obx(() => CategoryChip(
+                                    label: c.name,
+                                    isActive: controller.activeFilterCategories
+                                        .contains(c.id),
+                                    onTap: () => controller.selectCategory(c.id),
+                                  )),
+                            )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              );
+            }),
             Expanded(
               child: Obx(() {
                 final hasQuery = controller.query.value.trim().isNotEmpty ||
                     controller.hasActiveFilters;
 
-                if (!hasQuery && !controller.showMapResults.value) {
-                  return _MapView(
-                    controller: controller,
-                    homeController: homeController,
+                if (hasQuery) {
+                  if (controller.searchResults.isEmpty) {
+                    return const _EmptyState();
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 100),
+                    itemCount: controller.searchResults.length,
+                    itemBuilder: (_, i) => SearchResultCard(
+                      channel: controller.searchResults[i],
+                      onTap: () => _openChannel(controller.searchResults[i]),
+                    ),
                   );
                 }
 
-                if (!hasQuery && controller.showMapResults.value) {
-                  return _MapResults(
-                    controller: controller,
-                    onOpen: _openChannel,
-                  );
+                if (controller.isCategoryMode.value) {
+                  return const _CategoryEmptyState();
                 }
 
-                if (controller.searchResults.isEmpty) {
-                  return const _EmptyState();
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 100),
-                  itemCount: controller.searchResults.length,
-                  itemBuilder: (_, i) => SearchResultCard(
-                    channel: controller.searchResults[i],
-                    onTap: () => _openChannel(controller.searchResults[i]),
-                  ),
+                return _MapView(
+                  controller: controller,
+                  homeController: homeController,
+                  onCountryTap: _openCountryByPin,
+                  onMapTap: _openCountryByMapTap,
                 );
               }),
             ),
@@ -146,8 +205,15 @@ class _SearchScreenState extends State<SearchScreen>
 class _MapView extends StatelessWidget {
   final SearchController controller;
   final HomeController homeController;
+  final void Function(CountryModel) onCountryTap;
+  final void Function(double, double) onMapTap;
 
-  const _MapView({required this.controller, required this.homeController});
+  const _MapView({
+    required this.controller,
+    required this.homeController,
+    required this.onCountryTap,
+    required this.onMapTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -163,8 +229,8 @@ class _MapView extends StatelessWidget {
               countries: homeController.countries,
               channelCounts: homeController.channelCountByCountry,
               activeCountryCode: controller.selectedCountryCode.value,
-              onCountryTap: controller.onCountryPinTap,
-              onMapTap: controller.onMapTap,
+              onCountryTap: onCountryTap,
+              onMapTap: onMapTap,
             )),
         const SizedBox(height: 24),
         Obx(() {
@@ -205,7 +271,7 @@ class _MapView extends StatelessWidget {
                   final count =
                       homeController.channelCountByCountry[country.code] ?? 0;
                   return GestureDetector(
-                    onTap: () => controller.onCountryPinTap(country),
+                    onTap: () => onCountryTap(country),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -249,49 +315,98 @@ class _MapView extends StatelessWidget {
   }
 }
 
-class _MapResults extends StatelessWidget {
-  final SearchController controller;
-  final void Function(ChannelModel) onOpen;
+/// Segmented Category/Country toggle from the design's `.seg` chip group.
+class _SegmentedToggle extends StatelessWidget {
+  final bool isCategoryMode;
+  final ValueChanged<bool> onChanged;
 
-  const _MapResults({required this.controller, required this.onOpen});
+  const _SegmentedToggle({required this.isCategoryMode, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 4, 4, 8),
-          child: SectionHeader(
-            title: controller.selectedCountryName.value,
-            subtitle: '${controller.mapResults.length} live channels',
-            actionLabel: 'Back to map',
-            onAction: controller.clearMapSelection,
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: TColors.bgCard,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: TColors.divider),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SegButton(
+            label: 'Category',
+            isActive: isCategoryMode,
+            onTap: () => onChanged(true),
+          ),
+          _SegButton(
+            label: 'Country',
+            isActive: !isCategoryMode,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegButton extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _SegButton(
+      {required this.label, required this.isActive, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isActive ? TColors.bgCard3 : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: isActive ? Colors.white : TColors.textSecondary,
           ),
         ),
-        Expanded(
-          child: controller.mapResults.isEmpty
-              ? const _EmptyState()
-              : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 124 / 150,
-                  ),
-                  itemCount: controller.mapResults.length,
-                  itemBuilder: (_, i) {
-                    final channel = controller.mapResults[i];
-                    return ChannelCard(
-                      channel: channel,
-                      onTap: () => onOpen(channel),
-                    );
-                  },
-                ),
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+class _CategoryEmptyState extends StatelessWidget {
+  const _CategoryEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.category_rounded, size: 48, color: TColors.textDisabled),
+          SizedBox(height: 12),
+          Text(
+            'Pick a category',
+            style: TextStyle(
+              color: TColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Choose a category above to browse live channels',
+            style: TextStyle(color: TColors.textDisabled, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }

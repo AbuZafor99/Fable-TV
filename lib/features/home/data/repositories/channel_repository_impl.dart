@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/models/network_success.dart';
@@ -66,6 +67,17 @@ class ChannelRepositoryImpl implements ChannelRepository {
         },
       );
     }
+
+    try {
+      final bundled = await rootBundle.loadString(ApiConstants.bdIptv.bundledExtra);
+      final parsed = parseM3uPlaylist(bundled, idPrefix: 'bd-extra-', country: 'BD');
+      for (final c in parsed) {
+        channels[c.id] = c;
+      }
+    } catch (e) {
+      dPrint('Bundled BD playlist failed to load: $e');
+    }
+
     return channels.values.toList();
   }
 
